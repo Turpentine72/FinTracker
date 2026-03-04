@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 function Expense({ darkMode, setDarkMode }) {
   const navigate = useNavigate();
 
-  /* ---------------- SAFE MOBILE STATE ---------------- */
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
@@ -23,11 +22,9 @@ function Expense({ darkMode, setDarkMode }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  /* ---------------- DATE ---------------- */
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
 
-  /* ---------------- CATEGORY CONFIG ---------------- */
   const categoryConfig = {
     'Food & Dining': { icon: Utensils, color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'Food' },
     'Transportation': { icon: Car, color: 'text-blue-400', bg: 'bg-blue-400/10', label: 'Transport' },
@@ -36,12 +33,11 @@ function Expense({ darkMode, setDarkMode }) {
     'Shopping': { icon: ShoppingBag, color: 'text-amber-400', bg: 'bg-amber-400/10', label: 'Shop' },
   };
 
-  /* ---------------- LOAD EXPENSES SAFELY ---------------- */
   const [allExpenses, setAllExpenses] = useState([]);
 
-  useEffect(() => {
+  // Load expenses function
+  const loadExpenses = () => {
     if (typeof window === 'undefined') return;
-
     const saved = localStorage.getItem('expensesByMonth');
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -49,15 +45,39 @@ function Expense({ darkMode, setDarkMode }) {
         .flat()
         .sort((a, b) => new Date(b.date) - new Date(a.date));
       setAllExpenses(expenses);
+    } else {
+      setAllExpenses([]);
     }
+  };
+
+  // Initial load and setup listeners
+  useEffect(() => {
+    loadExpenses();
+
+    if (typeof window === 'undefined') return;
+
+    // Listen for updates from other components
+    const handleUpdate = () => {
+      loadExpenses();
+    };
+
+    window.addEventListener('expensesUpdated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    // Poll for changes every second as backup
+    const interval = setInterval(loadExpenses, 1000);
+
+    return () => {
+      window.removeEventListener('expensesUpdated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
-  /* ---------------- FILTER STATES ---------------- */
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTimeRange, setSelectedTimeRange] = useState('All Time');
 
-  /* ---------------- FILTER LOGIC ---------------- */
   const filteredExpenses = allExpenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     const expenseMonthKey = `${expenseDate.getFullYear()}-${expenseDate.getMonth()}`;
@@ -79,7 +99,6 @@ function Expense({ darkMode, setDarkMode }) {
   const totalAmount = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const categories = ['All', ...new Set(allExpenses.map(e => e.category))];
 
-  /* ---------------- DELETE ---------------- */
   const handleDelete = (id) => {
     if (typeof window === 'undefined') return;
     if (!window.confirm('Delete this expense?')) return;
@@ -96,9 +115,11 @@ function Expense({ darkMode, setDarkMode }) {
       grouped[key].push(exp);
     });
     localStorage.setItem('expensesByMonth', JSON.stringify(grouped));
+    
+    // Notify other components
+    window.dispatchEvent(new Event('expensesUpdated'));
   };
 
-  /* ---------------- EXPORT CSV ---------------- */
   const exportToCSV = () => {
     if (typeof window === 'undefined') return;
     
@@ -116,7 +137,6 @@ function Expense({ darkMode, setDarkMode }) {
     a.click();
   };
 
-  /* ---------------- HELPERS ---------------- */
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -130,8 +150,6 @@ function Expense({ darkMode, setDarkMode }) {
   };
 
   const hasActiveFilters = searchTerm || selectedCategory !== 'All' || selectedTimeRange !== 'All Time';
-
-  /* ================= UI ================= */
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black' : 'bg-white'}`}>

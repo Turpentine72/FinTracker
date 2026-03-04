@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 function New({ darkMode, setDarkMode }) {
   const navigate = useNavigate();
 
-  /* ---------- SAFE MOBILE STATE ---------- */
   const [isMobile, setIsMobile] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -22,7 +21,6 @@ function New({ darkMode, setDarkMode }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  /* ---------- FORM STATE ---------- */
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
@@ -30,16 +28,14 @@ function New({ darkMode, setDarkMode }) {
     date: new Date().toISOString().split('T')[0]
   });
 
-  /* ---------- CATEGORY CONFIG ---------- */
   const categories = [
-    { name: 'Food & Dining', icon: Utensils, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
-    { name: 'Transportation', icon: Car, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
-    { name: 'Bills & Utilities', icon: Lightbulb, color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20' },
-    { name: 'Entertainment', icon: Film, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
-    { name: 'Shopping', icon: ShoppingBag, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+    { name: 'Food & Dining', icon: Utensils, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', colorCode: '#10b981' },
+    { name: 'Transportation', icon: Car, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20', colorCode: '#3b82f6' },
+    { name: 'Bills & Utilities', icon: Lightbulb, color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', colorCode: '#ef4444' },
+    { name: 'Entertainment', icon: Film, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', colorCode: '#8b5cf6' },
+    { name: 'Shopping', icon: ShoppingBag, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', colorCode: '#f59e0b' },
   ];
 
-  /* ---------- INPUT CHANGE ---------- */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -49,7 +45,6 @@ function New({ darkMode, setDarkMode }) {
     setFormData(prev => ({ ...prev, category: categoryName }));
   };
 
-  /* ---------- SUBMIT ---------- */
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -58,18 +53,20 @@ function New({ darkMode, setDarkMode }) {
       return;
     }
 
+    const selectedCategory = categories.find(c => c.name === formData.category);
+
     const newExpense = {
       id: Date.now(),
       title: formData.description,
       amount: parseFloat(formData.amount),
       category: formData.category,
+      categoryColor: selectedCategory?.colorCode,
       date: formData.date,
     };
 
     const dateObj = new Date(formData.date);
     const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
 
-    /* SAFE LOCALSTORAGE */
     if (typeof window !== 'undefined') {
       const allExpenses = JSON.parse(localStorage.getItem('expensesByMonth') || '{}');
 
@@ -79,6 +76,9 @@ function New({ darkMode, setDarkMode }) {
 
       allExpenses[monthKey].push(newExpense);
       localStorage.setItem('expensesByMonth', JSON.stringify(allExpenses));
+      
+      // DISPATCH CUSTOM EVENT to notify other components
+      window.dispatchEvent(new Event('expensesUpdated'));
     }
 
     setShowSuccess(true);
@@ -95,8 +95,6 @@ function New({ darkMode, setDarkMode }) {
       date: new Date().toISOString().split('T')[0]
     });
   };
-
-  /* ================= UI ================= */
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black' : 'bg-white'}`}>

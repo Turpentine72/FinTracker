@@ -7,6 +7,8 @@ import Header from '../components/Header';
 
 function Dashboard({ darkMode, setDarkMode }) {
   const [isMobile, setIsMobile] = useState(false);
+  const [allExpensesByMonth, setAllExpensesByMonth] = useState({});
+  const [forceUpdate, setForceUpdate] = useState(0); // Force re-render trigger
   
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
@@ -23,16 +25,48 @@ function Dashboard({ darkMode, setDarkMode }) {
   const viewingMonthKey = `${viewingMonth.getFullYear()}-${viewingMonth.getMonth()}`;
   const isCurrentMonth = viewingMonthKey === currentMonthKey;
 
-  const [allExpensesByMonth, setAllExpensesByMonth] = useState({});
-
-  // Safe localStorage access
-  useEffect(() => {
+  // Load expenses from localStorage
+  const loadExpenses = () => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('expensesByMonth');
       if (saved) {
         setAllExpensesByMonth(JSON.parse(saved));
       }
     }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadExpenses();
+  }, []);
+
+  // Listen for storage changes (when New.js adds expenses)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'expensesByMonth') {
+        loadExpenses();
+      }
+    };
+
+    // Custom event for same-tab updates
+    const handleCustomUpdate = () => {
+      loadExpenses();
+      setForceUpdate(prev => prev + 1); // Force re-render
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('expensesUpdated', handleCustomUpdate);
+    
+    // Check for updates every second (backup for same-tab)
+    const interval = setInterval(loadExpenses, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('expensesUpdated', handleCustomUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const viewingMonthExpenses = allExpensesByMonth[viewingMonthKey] || [];
@@ -41,16 +75,10 @@ function Dashboard({ darkMode, setDarkMode }) {
     if (typeof window === 'undefined') return;
     
     const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize(); // Set initial value
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('expensesByMonth', JSON.stringify(allExpensesByMonth));
-    }
-  }, [allExpensesByMonth]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -64,7 +92,6 @@ function Dashboard({ darkMode, setDarkMode }) {
           ...prev,
           [newMonthKey]: []
         }));
-        setViewingMonth(now);
       }
     };
     
@@ -123,11 +150,22 @@ function Dashboard({ darkMode, setDarkMode }) {
 
   const categoriesMap = viewingMonthExpenses.reduce((acc, exp) => {
     if (!acc[exp.category]) {
-      acc[exp.category] = { amount: 0, ...exp.categoryInfo };
+      acc[exp.category] = { amount: 0, color: exp.categoryColor || getCategoryColor(exp.category) };
     }
     acc[exp.category].amount += exp.amount;
     return acc;
   }, {});
+
+  function getCategoryColor(category) {
+    const colors = {
+      'Food & Dining': '#10b981',
+      'Transportation': '#3b82f6',
+      'Bills & Utilities': '#ef4444',
+      'Entertainment': '#8b5cf6',
+      'Shopping': '#f59e0b',
+    };
+    return colors[category] || '#6b7280';
+  }
 
   const categories = Object.entries(categoriesMap).map(([name, data]) => ({
     name, ...data
@@ -142,7 +180,7 @@ function Dashboard({ darkMode, setDarkMode }) {
   ];
 
   const displayCategories = categories.length > 0 ? categories : defaultCategories;
-  const total = displayCategories.reduce((sum, cat) => sum + cat.amount, 0);
+  const total = displayCategories.reduce((sum, cat) => sum + cat.amount, 0) || 1;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black' : 'bg-white'}`}>
