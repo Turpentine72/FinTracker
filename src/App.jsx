@@ -12,14 +12,25 @@ import Upgrade from "./pages/Upgrade";
 import Settings from "./pages/Settings";
 
 function App() {
-  const [darkMode, setDarkMode] = useState(() => {
-    // Check localStorage or system preference
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) return JSON.parse(saved);
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  const [darkMode, setDarkMode] = useState(false); // Default to false for SSR
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
+    // Check localStorage or system preference
+    const saved = localStorage.getItem('darkMode');
+    const initialDarkMode = saved !== null 
+      ? JSON.parse(saved) 
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    setDarkMode(initialDarkMode);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
     // Save to localStorage
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
     

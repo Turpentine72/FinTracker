@@ -43,7 +43,7 @@ const SignUpPage = () => {
                 value={formData.fullName}
                 onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500"
-                placeholder="Your name"
+                placeholder="your name here"
                 required
               />
             </div>
@@ -58,7 +58,7 @@ const SignUpPage = () => {
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500"
-                placeholder="you@example.com"
+                placeholder="your email here"
                 required
               />
             </div>

@@ -11,8 +11,8 @@ function Settings({ darkMode, setDarkMode }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    email: 'john@example.com',
+    name: 'Full name',
+    email: 'your email here',
     currency: 'USD',
     profileImage: null
   });
