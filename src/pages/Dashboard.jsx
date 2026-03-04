@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, Calendar, Receipt, TrendingUp, Lightbulb, ShoppingBag, 
-  Film, Utensils, Car, ChevronLeft, ChevronRight, Plus 
+  Film, Utensils, Car, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Header from '../components/Header';
 
 function Dashboard({ darkMode, setDarkMode }) {
-  const [activeTab, setActiveTab] = useState('Dashboard');
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(false);
   
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
@@ -24,24 +23,38 @@ function Dashboard({ darkMode, setDarkMode }) {
   const viewingMonthKey = `${viewingMonth.getFullYear()}-${viewingMonth.getMonth()}`;
   const isCurrentMonth = viewingMonthKey === currentMonthKey;
 
-  const [allExpensesByMonth, setAllExpensesByMonth] = useState(() => {
-    const saved = localStorage.getItem('expensesByMonth');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [allExpensesByMonth, setAllExpensesByMonth] = useState({});
+
+  // Safe localStorage access
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('expensesByMonth');
+      if (saved) {
+        setAllExpensesByMonth(JSON.parse(saved));
+      }
+    }
+  }, []);
 
   const viewingMonthExpenses = allExpensesByMonth[viewingMonthKey] || [];
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize(); // Set initial value
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('expensesByMonth', JSON.stringify(allExpensesByMonth));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('expensesByMonth', JSON.stringify(allExpensesByMonth));
+    }
   }, [allExpensesByMonth]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const checkMonth = () => {
       const now = new Date();
       const newMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
@@ -63,6 +76,7 @@ function Dashboard({ darkMode, setDarkMode }) {
   const thisMonthTotal = viewingMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const transactionCount = viewingMonthExpenses.length;
   const averageTransaction = transactionCount > 0 ? thisMonthTotal / transactionCount : 0;
+  
   const allTimeTotal = Object.values(allExpensesByMonth).flat().reduce((sum, exp) => sum + exp.amount, 0);
 
   const stats = [
@@ -130,28 +144,6 @@ function Dashboard({ darkMode, setDarkMode }) {
   const displayCategories = categories.length > 0 ? categories : defaultCategories;
   const total = displayCategories.reduce((sum, cat) => sum + cat.amount, 0);
 
-  const addSampleExpense = () => {
-    const sampleCategories = [
-      { name: 'Food & Dining', color: '#10b981', icon: Utensils },
-      { name: 'Shopping', color: '#f59e0b', icon: ShoppingBag },
-      { name: 'Entertainment', color: '#8b5cf6', icon: Film },
-    ];
-    const randomCat = sampleCategories[Math.floor(Math.random() * sampleCategories.length)];
-    
-    const newExpense = {
-      id: Date.now(),
-      amount: Math.floor(Math.random() * 100) + 10,
-      category: randomCat.name,
-      categoryInfo: randomCat,
-      date: new Date().toISOString()
-    };
-    
-    setAllExpensesByMonth(prev => ({
-      ...prev,
-      [currentMonthKey]: [...(prev[currentMonthKey] || []), newExpense]
-    }));
-  };
-
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black' : 'bg-white'}`}>
       <Header darkMode={darkMode} setDarkMode={setDarkMode} />
@@ -193,21 +185,6 @@ function Dashboard({ darkMode, setDarkMode }) {
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
-
-        {/* Add expense button */}
-        {isCurrentMonth && (
-          <div className="mb-4 sm:mb-6">
-            <button 
-              onClick={addSampleExpense}
-              className={`w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                darkMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Sample Expense</span>
-            </button>
-          </div>
-        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">

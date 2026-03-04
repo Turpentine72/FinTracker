@@ -7,7 +7,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 function New({ darkMode, setDarkMode }) {
-
   const navigate = useNavigate();
 
   /* ---------- SAFE MOBILE STATE ---------- */
@@ -15,13 +14,11 @@ function New({ darkMode, setDarkMode }) {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
+    if (typeof window === 'undefined') return;
+    
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener('resize', checkMobile);
-
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -74,19 +71,14 @@ function New({ darkMode, setDarkMode }) {
 
     /* SAFE LOCALSTORAGE */
     if (typeof window !== 'undefined') {
-      const allExpenses =
-        JSON.parse(localStorage.getItem('expensesByMonth') || '{}');
+      const allExpenses = JSON.parse(localStorage.getItem('expensesByMonth') || '{}');
 
       if (!allExpenses[monthKey]) {
         allExpenses[monthKey] = [];
       }
 
       allExpenses[monthKey].push(newExpense);
-
-      localStorage.setItem(
-        'expensesByMonth',
-        JSON.stringify(allExpenses)
-      );
+      localStorage.setItem('expensesByMonth', JSON.stringify(allExpenses));
     }
 
     setShowSuccess(true);
@@ -107,7 +99,7 @@ function New({ darkMode, setDarkMode }) {
   /* ================= UI ================= */
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black' : 'bg-white'}`}>
       <Header darkMode={darkMode} setDarkMode={setDarkMode} />
 
       <main className="p-3 sm:p-4 lg:p-6 max-w-2xl mx-auto">
@@ -119,96 +111,168 @@ function New({ darkMode, setDarkMode }) {
               : 'bg-emerald-50 border border-emerald-200 text-emerald-600'
           }`}>
             <CheckCircle className="w-5 h-5" />
-            Expense added!
+            <span className="font-medium">Expense added!</span>
           </div>
         )}
 
-        <div className={`p-6 rounded-2xl border ${
+        <div className={`p-4 sm:p-6 lg:p-8 rounded-2xl border ${
           darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'
         }`}>
 
-          <h2 className={`text-xl font-semibold mb-6 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            Add New Expense
-          </h2>
+          <div className="mb-6">
+            <h2 className={`text-xl sm:text-2xl font-semibold mb-1 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Add New Expense
+            </h2>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Track your spending
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
 
             {/* Amount */}
-            <input
-              type="number"
-              name="amount"
-              placeholder="Amount"
-              value={formData.amount}
-              onChange={handleChange}
-              className={`w-full p-3 rounded-xl border ${
-                darkMode
-                  ? 'bg-gray-900 border-gray-700 text-white'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            />
+            <div>
+              <label className={`block text-xs sm:text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Amount
+              </label>
+              <div className="relative">
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-lg font-semibold ${
+                  darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>$</span>
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  autoFocus
+                  className={`w-full pl-8 pr-4 py-3 text-xl font-bold rounded-xl border outline-none ${
+                    darkMode
+                      ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-600'
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+            </div>
 
             {/* Description */}
-            <input
-              type="text"
-              name="description"
-              placeholder="Description"
-              value={formData.description}
-              onChange={handleChange}
-              className={`w-full p-3 rounded-xl border ${
-                darkMode
-                  ? 'bg-gray-900 border-gray-700 text-white'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            />
+            <div>
+              <label className={`block text-xs sm:text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Description
+              </label>
+              <div className="relative">
+                <FileText className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-400'
+                }`} />
+                <input
+                  type="text"
+                  name="description"
+                  placeholder="What did you spend on?"
+                  value={formData.description}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none text-sm ${
+                    darkMode
+                      ? 'bg-gray-900 border-gray-700 text-white'
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+            </div>
 
             {/* Category */}
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map(cat => {
-                const Icon = cat.icon;
-                const selected = formData.category === cat.name;
+            <div>
+              <label className={`block text-xs sm:text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Category
+              </label>
+              
+              {/* Mobile scroll */}
+              <div className="sm:hidden overflow-x-auto pb-2 -mx-1">
+                <div className="flex gap-2 w-max px-1">
+                  {categories.map((cat) => {
+                    const Icon = cat.icon;
+                    const isSelected = formData.category === cat.name;
+                    return (
+                      <button
+                        key={cat.name}
+                        type="button"
+                        onClick={() => handleCategorySelect(cat.name)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-full border whitespace-nowrap ${
+                          isSelected
+                            ? `${cat.bg} ${cat.border} ${cat.color}`
+                            : darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="text-sm">{cat.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                return (
-                  <button
-                    key={cat.name}
-                    type="button"
-                    onClick={() => handleCategorySelect(cat.name)}
-                    className={`flex items-center gap-2 p-3 rounded-xl border ${
-                      selected
-                        ? `${cat.bg} ${cat.border} ${cat.color}`
-                        : darkMode
-                          ? 'bg-gray-900 border-gray-700'
-                          : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {cat.name}
-                  </button>
-                );
-              })}
+              {/* Desktop grid */}
+              <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {categories.map((cat) => {
+                  const Icon = cat.icon;
+                  const isSelected = formData.category === cat.name;
+                  return (
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => handleCategorySelect(cat.name)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left ${
+                        isSelected
+                          ? `${cat.bg} ${cat.border} ${cat.color} ring-2 ring-offset-2 ${darkMode ? 'ring-offset-black' : 'ring-offset-white'} ring-current`
+                          : darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{cat.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Date */}
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className={`w-full p-3 rounded-xl border ${
-                darkMode
-                  ? 'bg-gray-900 border-gray-700 text-white'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            />
+            <div>
+              <label className={`block text-xs sm:text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Date
+              </label>
+              <div className="relative">
+                <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-400'
+                }`} />
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none text-sm ${
+                    darkMode
+                      ? 'bg-gray-900 border-gray-700 text-white [color-scheme:dark]'
+                      : 'bg-gray-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+            </div>
 
             {/* Submit */}
             <button
               type="submit"
-              className={`w-full flex justify-center gap-2 py-3 rounded-xl font-semibold ${
-                darkMode
-                  ? 'bg-white text-black'
-                  : 'bg-black text-white'
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-colors ${
+                darkMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'
               }`}
             >
               <Plus className="w-5 h-5" />
